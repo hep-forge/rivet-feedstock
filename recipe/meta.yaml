@@ -32,6 +32,8 @@ requirements:
     - fastjet-contrib
 
   run:
+    - zlib
+    - zlib-ng
     - yoda
     - hepmc>=3
     - fastjet
