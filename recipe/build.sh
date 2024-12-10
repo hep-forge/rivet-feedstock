@@ -1,6 +1,6 @@
 #! /usr/bin/bash
 
-./configure --prefix=$PREFIX --with-zlib=$CONDA_PREFIX
+./configure --prefix=$PREFIX --without-zlib
 
 make -j$(nproc)
 make install
