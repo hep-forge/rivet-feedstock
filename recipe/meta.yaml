@@ -24,6 +24,8 @@ requirements:
     - make
 
   host:
+    - zlib
+    - zlib-ng
     - yoda
     - hepmc>=3
     - fastjet
