@@ -1,0 +1,50 @@
+{% set versions = {
+    "4.0.2": "7a3bed88d95bea5ae2cc6b79808b4c91cd11ec840e3308de5cb34685a1470363"
+} %}
+
+{% set version = environ.get('COMMIT_VERSION', None) %}
+{% set version = version or versions.keys()|first %}
+{% set version = version|string %}
+
+package:
+  name: {{ environ.get('ANACONDA_PACKAGE', "rivet")|string|lower }}
+  version: {{ environ.get('ANACONDA_VERSION', version)|replace("-", ".") }}
+
+source:
+  url: "https://rivet.hepforge.org/downloads/?f=Rivet-{{ version }}.tar.gz"
+  {% if versions.get(version, None) %}
+  sha256: {{ versions.get(version) }}
+  {% endif %}
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}
+
+    - make
+
+  host:
+    - yoda
+    - hepmc>=3
+    - fastjet
+    - fastjet-contrib
+
+  run:
+    - yoda
+    - hepmc>=3
+    - fastjet
+    - fastjet-contrib
+
+about:
+  home: "https://rivet.hepforge.org"
+  license: "GPL-3.0"
+  summary: "Rivet - the particle-physics MC analysis toolkit"
+  description: |
+    The Rivet toolkit (Robust Independent Validation of Experiment and Theory) is a system for
+    validation of Monte Carlo event generators. It provides a large (and ever growing) set of
+    experimental analyses useful for MC generator development, validation, and tuning, as well as a
+    convenient infrastructure for adding your own analyses.
+
+extra:
+  recipe-maintainers:
+    - meiyasan
