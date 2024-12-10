@@ -24,12 +24,14 @@ requirements:
     - make
 
   host:
+    - zlib
     - yoda
     - hepmc>=3
     - fastjet
     - fastjet-contrib
 
   run:
+    - zlib
     - yoda
     - hepmc>=3
     - fastjet
