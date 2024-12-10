@@ -22,3 +22,5 @@
 /build_artifacts
 
 *.pyc
+!Makefile
+!.github
