@@ -27,14 +27,14 @@ requirements:
   host:
     - zlib
     - yoda
-    - hepmc>=3
+    - hepmc
     - fastjet
     - fastjet-contrib
 
   run:
     - zlib
     - yoda
-    - hepmc>=3
+    - hepmc
     - fastjet
     - fastjet-contrib
 
