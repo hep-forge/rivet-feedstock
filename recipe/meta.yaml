@@ -27,16 +27,24 @@ requirements:
   host:
     - zlib
     - yoda
-    - hepmc
     - fastjet
     - fastjet-contrib
+{% if version.startswith('3') %}
+    - hepmc<3
+{% else %}
+    - hepmc
+{% endif %}
 
   run:
     - zlib
     - yoda
-    - hepmc
     - fastjet
     - fastjet-contrib
+{% if version.startswith('3') %}
+    - hepmc<3
+{% else %}
+    - hepmc
+{% endif %}
 
 about:
   home: "https://rivet.hepforge.org"
