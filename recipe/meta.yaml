@@ -19,6 +19,7 @@ source:
 
 requirements:
   build:
+    - python=3.10
     - {{ compiler('cxx') }}
     - {{ compiler('c') }}
 
