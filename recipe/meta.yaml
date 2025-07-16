@@ -21,8 +21,8 @@ source:
   {% if versions.get(version, None) %}
   sha256: {{ versions.get(version) }}
   {% endif %}
-#  patches: # patch might be required for 4.0.2
-#    - patches/cstdint.patch
+  patches:
+    - patches/cstdint.patch
 
 requirements:
   build:

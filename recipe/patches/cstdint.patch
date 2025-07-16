@@ -1,0 +1,24 @@
+From 501a3fbd6fe1fdaeae2e810bf3a71f4df8afaa6a Mon Sep 17 00:00:00 2001
+From: Marco Meyer-Conde <marco@tcu.ac.jp>
+Date: Thu, 17 Jul 2025 08:45:03 +0900
+Subject: [PATCH] update cstdint
+
+---
+ include/Rivet/Tools/RivetSTL.hh | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/Rivet/Tools/RivetSTL.hh b/include/Rivet/Tools/RivetSTL.hh
+index ee36822..e102c1a 100644
+--- a/include/Rivet/Tools/RivetSTL.hh
++++ b/include/Rivet/Tools/RivetSTL.hh
+@@ -20,6 +20,7 @@
+ // #include <iomanip>
+ // #include <cmath>
+ // #include <limits>
++#include <cstdint>
+ 
+ namespace Rivet {
+ 
+-- 
+2.34.1
+
