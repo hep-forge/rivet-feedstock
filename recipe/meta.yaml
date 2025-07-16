@@ -25,21 +25,22 @@ requirements:
     - python
     - {{ compiler('cxx') }}
     - {{ compiler('c') }}
+    - {{ stdlib('c') }}
 
     - make
 
   host:
-    - zlib
-    - yoda
     - fastjet
     - fastjet-contrib
+    - zlib
+    - yoda
     - hepmc
 
   run:
-    - zlib
-    - yoda
     - fastjet
     - fastjet-contrib
+    - zlib
+    - yoda
     - hepmc
 
 about:
