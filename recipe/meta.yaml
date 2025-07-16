@@ -12,10 +12,6 @@ package:
   name: {{ environ.get('ANACONDA_PACKAGE', "rivet")|string|lower }}
   version: {{ environ.get('ANACONDA_VERSION', version)|replace("-", ".") }}
 
-build:
-  number: 0
-  string: "root{{ root.replace('.', '') }}"
-
 source:
   url: "https://rivet.hepforge.org/downloads/?f=Rivet-{{ version }}.tar.gz"
   {% if versions.get(version, None) %}
