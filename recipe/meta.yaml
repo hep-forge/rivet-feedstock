@@ -33,22 +33,29 @@ requirements:
     - {{ compiler('cxx') }}
     - {{ compiler('c') }}
     - {{ stdlib('c') }}
-
     - make
 
   host:
     - fastjet
     - fastjet-contrib
     - zlib
-    - yoda
     - hepmc
+    {% if major_version < 4 %}
+    - yoda<2
+    {% else %}
+    - yoda
+    {% endif %}
 
   run:
     - fastjet
     - fastjet-contrib
     - zlib
-    - yoda
     - hepmc
+    {% if major_version < 4 %}
+    - yoda<2
+    {% else %}
+    - yoda
+    {% endif %}
 
 about:
   home: "https://rivet.hepforge.org"
