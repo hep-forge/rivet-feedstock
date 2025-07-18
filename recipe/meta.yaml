@@ -31,7 +31,6 @@ source:
 requirements:
   build:
     - python
-    - cython
     - {{ compiler('cxx') }}
     - {{ compiler('c') }}
     - {{ stdlib('c') }}
@@ -39,7 +38,6 @@ requirements:
 
   host:
     - python
-    - cython
     - fastjet
     - fastjet-contrib
     - zlib
@@ -53,7 +51,6 @@ requirements:
 
   run:
     - python
-    - cython
     - fastjet
     - fastjet-contrib
     - zlib
