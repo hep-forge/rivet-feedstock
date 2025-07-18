@@ -8,6 +8,8 @@
 {% set version = version or versions.keys()|first %}
 {% set version = version|string %}
 
+{% set major_version = version.split('.')[0]|int %}
+
 build:
   number: 0
   string: "root{{ root.replace('.', '') }}"
@@ -21,30 +23,43 @@ source:
   {% if versions.get(version, None) %}
   sha256: {{ versions.get(version) }}
   {% endif %}
+  {% if major_version < 4 %}
   patches:
     - patches/cstdint.patch
+  {% endif %}
 
 requirements:
   build:
     - {{ compiler('cxx') }}
     - {{ compiler('c') }}
     - {{ stdlib('c') }}
-
     - make
 
   host:
+    - python
     - fastjet
     - fastjet-contrib
     - zlib
-    - yoda
+    - root
     - hepmc
+    {% if major_version < 4 %}
+    - yoda<2
+    {% else %}
+    - yoda
+    {% endif %}
 
   run:
+    - python
     - fastjet
     - fastjet-contrib
     - zlib
-    - yoda
+    - root
     - hepmc
+    {% if major_version < 4 %}
+    - yoda<2
+    {% else %}
+    - yoda
+    {% endif %}
 
 about:
   home: "https://rivet.hepforge.org"
