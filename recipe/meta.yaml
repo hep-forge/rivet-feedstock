@@ -30,7 +30,6 @@ source:
 
 requirements:
   build:
-    - python
     - {{ compiler('cxx') }}
     - {{ compiler('c') }}
     - {{ stdlib('c') }}
