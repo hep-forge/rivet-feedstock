@@ -42,11 +42,11 @@ requirements:
     - zlib
     - root
     - hepmc
-    #{% if major_version < 4 %}
-    #- yoda<2
-    #{% else %}
+    {% if major_version < 4 %}
+    - yoda<2
+    {% else %}
     - yoda
-    #{% endif %}
+    {% endif %}
 
   run:
     - python
@@ -55,11 +55,11 @@ requirements:
     - zlib
     - root
     - hepmc
-    #{% if major_version < 4 %}
-    #- yoda<2
-    #{% else %}
+    {% if major_version < 4 %}
+    - yoda<2
+    {% else %}
     - yoda
-    #{% endif %}
+    {% endif %}
 
 about:
   home: "https://rivet.hepforge.org"
