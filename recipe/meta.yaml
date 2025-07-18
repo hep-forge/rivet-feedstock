@@ -30,12 +30,14 @@ source:
 
 requirements:
   build:
+    - python
     - {{ compiler('cxx') }}
     - {{ compiler('c') }}
     - {{ stdlib('c') }}
     - make
 
   host:
+    - python
     - fastjet
     - fastjet-contrib
     - zlib
@@ -48,6 +50,7 @@ requirements:
     {% endif %}
 
   run:
+    - python
     - fastjet
     - fastjet-contrib
     - zlib
