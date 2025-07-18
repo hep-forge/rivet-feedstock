@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# Restore PYTHONPATH if backup exists
+if [[ -n "$OLD_PYTHONPATH" ]]; then
+    export PYTHONPATH="$OLD_PYTHONPATH"
+    unset OLD_PYTHONPATH
+else
+    unset PYTHONPATH
+fi
