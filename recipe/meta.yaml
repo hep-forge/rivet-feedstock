@@ -30,35 +30,33 @@ source:
 
 requirements:
   build:
-    - {{ compiler('cxx') }}
-    - {{ compiler('c') }}
-    - {{ stdlib('c') }}
+    - root {{ root }}.*
     - make
 
   host:
-    - python
+    - root {{ root }}.*
     - fastjet
     - fastjet-contrib
     - zlib
-    - root
-    - hepmc
+    - hepmc * root{{ root.replace('.', '') }}
     {% if major_version < 4 %}
-    - yoda<2
+    - yoda<2 root{{ root.replace('.', '') }}
     {% else %}
-    - yoda
+    - yoda * root{{ root.replace('.', '') }}
     {% endif %}
-
+    
   run:
     - python
     - fastjet
     - fastjet-contrib
     - zlib
-    - root
-    - hepmc
+    - root {{ root }}.*
+    - hepmc * root{{ root.replace('.', '') }}
+
     {% if major_version < 4 %}
-    - yoda<2
+    - yoda<2 root{{ root.replace('.', '') }}
     {% else %}
-    - yoda
+    - yoda * root{{ root.replace('.', '') }}
     {% endif %}
 
 about:
