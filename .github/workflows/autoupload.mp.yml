@@ -87,11 +87,15 @@ jobs:
         shell: bash -l {0}
         run: |
           set -euo pipefail
-          # Create a single-line JSON matrix from your conda_build_config.yaml variants
           python - <<'PY' > matrix.json
-          import json
+          import json, io, contextlib, logging, sys
           from conda_build.api import render
-          outs = render("recipe", finalize=False)
+          
+          # Silence conda-build chatter to stdout
+          logging.getLogger("conda_build").setLevel(logging.ERROR)
+          with contextlib.redirect_stdout(io.StringIO()):
+              outs = render("recipe", finalize=False)
+          
           seen, incl = set(), []
           for (meta, _, _) in outs:
               v = meta.config.variant
@@ -102,12 +106,14 @@ jobs:
               }
               key = json.dumps(item, sort_keys=True)
               if item.get("root") and key not in seen:
-                  seen.add(key)
-                  incl.append(item)
-          print(json.dumps({"include": incl}, separators=(",",":")))
+                  seen.add(key); incl.append(item)
+          
+          # Emit compact one-line JSON only
+          sys.stdout.write(json.dumps({"include": incl}, separators=(",",":")))
           PY
+      
           MATRIX=$(tr -d '\n' < matrix.json)
-          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          printf 'matrix=%s\n' "$MATRIX" >> "$GITHUB_OUTPUT"
 
   build:
     runs-on: ubuntu-latest
