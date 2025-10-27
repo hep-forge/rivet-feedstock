@@ -65,7 +65,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
-          activate-environment: base    # since "true" works for you, base is effectively what you get
+          activate-environment: true
           python-version: "3.11"
           auto-activate-base: true
       
