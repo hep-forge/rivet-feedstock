@@ -81,40 +81,43 @@ jobs:
       - name: Install conda-build
         shell: bash -l {0}
         run: conda install -y -c conda-forge conda-build
-
+      
       - id: mk
         name: Render recipe -> GHA matrix
         shell: bash -l {0}
         run: |
           set -euo pipefail
-          python - <<'PY' > matrix.json
-          import json, io, contextlib, logging, sys
-          from conda_build.api import render
-          
-          # Silence conda-build chatter to stdout
-          logging.getLogger("conda_build").setLevel(logging.ERROR)
-          with contextlib.redirect_stdout(io.StringIO()):
-              outs = render("recipe", finalize=False)
-          
-          seen, incl = set(), []
-          for (meta, _, _) in outs:
-              v = meta.config.variant
-              item = {
-                  "root": str(v.get("root", "")),
-                  "c_stdlib": v.get("c_stdlib", ""),
-                  "c_stdlib_version": str(v.get("c_stdlib_version", "")),
-              }
-              key = json.dumps(item, sort_keys=True)
-              if item.get("root") and key not in seen:
-                  seen.add(key); incl.append(item)
-          
-          # Emit compact one-line JSON only
-          sys.stdout.write(json.dumps({"include": incl}, separators=(",",":")))
-          PY
-      
-          MATRIX=$(tr -d '\n' < matrix.json)
-          printf 'matrix=%s\n' "$MATRIX" >> "$GITHUB_OUTPUT"
 
+          # Create the JSON file using embedded Python
+          python - <<'PY' > matrix.json
+import json, io, contextlib, logging, sys
+from conda_build.api import render
+
+# Silence conda-build chatter
+logging.getLogger("conda_build").setLevel(logging.ERROR)
+with contextlib.redirect_stdout(io.StringIO()):
+    outs = render("recipe", finalize=False)
+
+seen, incl = set(), []
+for (meta, _, _) in outs:
+    v = meta.config.variant
+    item = {
+        "root": str(v.get("root", "")),
+        "c_stdlib": v.get("c_stdlib", ""),
+        "c_stdlib_version": str(v.get("c_stdlib_version", "")),
+    }
+    key = json.dumps(item, sort_keys=True)
+    if item.get("root") and key not in seen:
+        seen.add(key)
+        incl.append(item)
+
+sys.stdout.write(json.dumps({"include": incl}, separators=(",",":")))
+PY
+
+          # Collapse to one line and export to job output
+          MATRIX=$(tr -d '\n' < matrix.json)
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          
   build:
     runs-on: ubuntu-latest
     needs: [env, prepare]
