@@ -2,58 +2,66 @@ name: Anaconda Build & Upload
 
 on:
   push:
-    branches:
-      - '**'
-    tags:
-      - '*'
+    branches: ['**']
+    tags: ['*']
 
 jobs:
   env:
     runs-on: ubuntu-latest
     outputs:
-      COMMIT_SHA: ${{ steps.git.outputs.COMMIT_SHA }}
-      COMMIT_LATEST_TAG: ${{ steps.git.outputs.COMMIT_LATEST_TAG }}
-      COMMIT_TAG: ${{ steps.git.outputs.COMMIT_TAG }}
-      COMMIT_VERSION: ${{ steps.git.outputs.COMMIT_VERSION }}
-      COMMIT_TYPE: ${{ steps.git.outputs.COMMIT_TYPE }}
-      ANACONDA_LABEL: ${{ steps.anaconda.outputs.ANACONDA_LABEL }}
-      ANACONDA_VERSION: ${{ steps.anaconda.outputs.ANACONDA_VERSION }}
-      ANACONDA_PACKAGE: ${{ steps.anaconda.outputs.ANACONDA_PACKAGE }}
+      COMMIT_SHA:         ${{ steps.git.outputs.COMMIT_SHA }}
+      COMMIT_LATEST_TAG:  ${{ steps.git.outputs.COMMIT_LATEST_TAG }}
+      COMMIT_TAG:         ${{ steps.git.outputs.COMMIT_TAG }}
+      COMMIT_VERSION:     ${{ steps.git.outputs.COMMIT_VERSION }}
+      COMMIT_TYPE:        ${{ steps.git.outputs.COMMIT_TYPE }}
+      ANACONDA_LABEL:     ${{ steps.anaconda.outputs.ANACONDA_LABEL }}
+      ANACONDA_VERSION:   ${{ steps.anaconda.outputs.ANACONDA_VERSION }}
+      ANACONDA_PACKAGE:   ${{ steps.anaconda.outputs.ANACONDA_PACKAGE }}
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0, fetch-tags: true }
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - id: git
         run: |
+          set -e
           COMMIT_SHA=$(git rev-parse HEAD || exit 1)
-          [ -z "$COMMIT_SHA" ] || echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
-          [ -z "$COMMIT_SHA" ] || echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "COMMIT_SHA=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+
           COMMIT_LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          [ -z "$COMMIT_LATEST_TAG" ] || echo "COMMIT_LATEST_TAG=$COMMIT_LATEST_TAG" >> $GITHUB_ENV
-          [ -z "$COMMIT_LATEST_TAG" ] || echo "COMMIT_LATEST_TAG=$COMMIT_LATEST_TAG" >> $GITHUB_OUTPUT
-          [ "$GITHUB_REF_TYPE" == "tag" ] && COMMIT_TAG="$GITHUB_REF_NAME" || COMMIT_TAG=""
-          [ -z "$COMMIT_TAG" ] && echo "COMMIT_TYPE=dev" >> $GITHUB_ENV    || echo "COMMIT_TAG=$COMMIT_TAG" >> $GITHUB_ENV
-          [ -z "$COMMIT_TAG" ] && echo "COMMIT_TYPE=dev" >> $GITHUB_OUTPUT || echo "COMMIT_TAG=$COMMIT_TAG" >> $GITHUB_OUTPUT
+          [ -n "$COMMIT_LATEST_TAG" ] && echo "COMMIT_LATEST_TAG=$COMMIT_LATEST_TAG" >> "$GITHUB_OUTPUT"
+
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            COMMIT_TAG="$GITHUB_REF_NAME"
+            echo "COMMIT_TAG=$COMMIT_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "COMMIT_TYPE=dev" >> "$GITHUB_OUTPUT"
+          fi
+
           COMMIT_VERSION="${COMMIT_TAG:-${COMMIT_LATEST_TAG}}"
-          [ -z "$COMMIT_VERSION" ] || echo "COMMIT_VERSION=$COMMIT_VERSION" >> $GITHUB_ENV
-          [ -z "$COMMIT_VERSION" ] || echo "COMMIT_VERSION=$COMMIT_VERSION" >> $GITHUB_OUTPUT
+          [ -n "$COMMIT_VERSION" ] && echo "COMMIT_VERSION=$COMMIT_VERSION" >> "$GITHUB_OUTPUT"
 
       - id: anaconda
         run: |
-          [ -n "$COMMIT_TYPE" ] && COMMIT_TYPE="-$COMMIT_TYPE"
-          [[ $COMMIT_VERSION == *-* ]] && ANACONDA_LABEL=${COMMIT_VERSION#*-} || ANACONDA_LABEL=""
-          ANACONDA_PACKAGE=$(basename `git rev-parse --show-toplevel` | sed 's,-feedstock,,g')
-          echo "ANACONDA_PACKAGE=$ANACONDA_PACKAGE" >> $GITHUB_ENV
-          echo "ANACONDA_PACKAGE=$ANACONDA_PACKAGE" >> $GITHUB_OUTPUT
-          ANACONDA_LABEL=${ANACONDA_LABEL:-main}
-          echo "ANACONDA_LABEL=$ANACONDA_LABEL" >> $GITHUB_ENV
-          echo "ANACONDA_LABEL=$ANACONDA_LABEL" >> $GITHUB_OUTPUT
-          ANACONDA_VERSION=${COMMIT_VERSION//-/.}
-          ANACONDA_VERSION=${ANACONDA_VERSION:-0.0.0}${COMMIT_TYPE//-/.}
-          echo "ANACONDA_VERSION=$ANACONDA_VERSION" >> $GITHUB_ENV
-          echo "ANACONDA_VERSION=$ANACONDA_VERSION" >> $GITHUB_OUTPUT
+          set -e
+          [ -n "${{ steps.git.outputs.COMMIT_TYPE }}" ] && CT="-${{ steps.git.outputs.COMMIT_TYPE }}" || CT=""
+          CV="${{ steps.git.outputs.COMMIT_VERSION }}"
+          if [[ "$CV" == *-* ]]; then
+            ANACONDA_LABEL="${CV#*-}"
+          else
+            ANACONDA_LABEL="main"
+          fi
+          ANACONDA_PACKAGE=$(basename "$(git rev-parse --show-toplevel)" | sed 's,-feedstock,,g')
+          ANACONDA_VERSION="${CV//-/.}"
+          ANACONDA_VERSION="${ANACONDA_VERSION:-0.0.0}${CT//-/.}"
 
-  # NEW: Prepare job renders variants from conda_build_config.yaml (selectors+zip_keys honored)
+          {
+            echo "ANACONDA_PACKAGE=$ANACONDA_PACKAGE"
+            echo "ANACONDA_LABEL=$ANACONDA_LABEL"
+            echo "ANACONDA_VERSION=$ANACONDA_VERSION"
+          } >> "$GITHUB_OUTPUT"
+
   prepare:
     runs-on: ubuntu-latest
     needs: env
@@ -61,50 +69,49 @@ jobs:
       matrix: ${{ steps.mk.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
-      - name: Setup miniconda (prepare)
+
+      - name: Setup Miniconda (prepare)
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
-          activate-environment: true
+          activate-environment: base    # must be a string; do NOT use true/false
           python-version: "3.11"
           auto-activate-base: true
-      
+
       - name: Install conda-build
-        shell: bash -l {0}              # << ensure conda env is loaded
+        shell: bash -l {0}
         run: conda install -y -c conda-forge conda-build
-      
+
       - id: mk
-  name: Render recipe → GHA matrix
-  shell: bash -l {0}
-  run: |
-    set -euo pipefail
+        name: Render recipe -> GHA matrix
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          # Create a single-line JSON matrix from your conda_build_config.yaml variants
+          python - <<'PY' > matrix.json
+          import json
+          from conda_build.api import render
+          outs = render("recipe", finalize=False)
+          seen, incl = set(), []
+          for (meta, _, _) in outs:
+              v = meta.config.variant
+              item = {
+                  "root": str(v.get("root", "")),
+                  "c_stdlib": v.get("c_stdlib", ""),
+                  "c_stdlib_version": str(v.get("c_stdlib_version", "")),
+              }
+              key = json.dumps(item, sort_keys=True)
+              if item.get("root") and key not in seen:
+                  seen.add(key)
+                  incl.append(item)
+          print(json.dumps({"include": incl}, separators=(",",":")))
+          PY
+          MATRIX=$(tr -d '\n' < matrix.json)
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
 
-    # Pure JSON to a temp file (stderr logs won't matter)
-    python - <<'PY' > matrix.json
-    import json
-    from conda_build.api import render
-    outs = render("recipe", finalize=False)
-    seen, incl = set(), []
-    for (meta, _, _) in outs:
-        v = meta.config.variant
-        item = {
-            "root": str(v.get("root", "")),
-            "c_stdlib": v.get("c_stdlib", ""),
-            "c_stdlib_version": str(v.get("c_stdlib_version", "")),
-        }
-        key = json.dumps(item, sort_keys=True)
-        if item.get("root") and key not in seen:
-            seen.add(key); incl.append(item)
-    print(json.dumps({"include": incl}, separators=(",",":")))
-    PY
-
-    # Collapse to ONE line and write as a simple name=value
-    MATRIX=$(tr -d '\n' < matrix.json)
-    printf 'matrix=%s\n' "$MATRIX" >> "$GITHUB_OUTPUT"
-    
   build:
-    needs: [env, prepare]
     runs-on: ubuntu-latest
+    needs: [env, prepare]
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
@@ -141,8 +148,11 @@ jobs:
 
       - name: Configure ccache
         run: |
-          echo "max_size = 2G" > ~/.ccache/ccache.conf
-          echo "compiler_check = content" >> ~/.ccache/ccache.conf
+          mkdir -p ~/.ccache
+          {
+            echo "max_size = 2G"
+            echo "compiler_check = content"
+          } > ~/.ccache/ccache.conf
           echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
           echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "CC='ccache gcc'"  >> $GITHUB_ENV
@@ -150,10 +160,10 @@ jobs:
           echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
           echo "CMAKE_C_COMPILER_LAUNCHER=ccache"   >> $GITHUB_ENV
 
-      - name: Build (one variant from CBC)
+      - name: Build (one CBC variant)
         shell: bash -l {0}
         run: |
-          # Pass ONLY the current variant back to mambabuild. This preserves your CBC logic but avoids sequential builds.
+          set -euo pipefail
           VAR_JSON=$(jq -nc \
             --arg root "${{ matrix.root }}" \
             --arg c_stdlib "${{ matrix.c_stdlib }}" \
@@ -162,7 +172,7 @@ jobs:
           echo "Selected variant: $VAR_JSON"
           mamba mambabuild recipe --variants "$VAR_JSON" --output-folder pkgs
 
-          # Optional: transmute to .conda
+          # Optional: convert tarballs to .conda for upload
           for PKG in $(find pkgs -name "*.tar.bz2"); do
             conda convert --platform linux-64 "$PKG" -o pkgs >/dev/null 2>&1 || true
           done
@@ -180,7 +190,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           pattern: conda-packages-*
-          merge-multiple: true
+        # merge-multiple: true isn't supported by v4, artifacts will download under their own dirs
           path: pkgs
 
       - name: Setup micromamba (client)
@@ -201,6 +211,7 @@ jobs:
           ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_API_TOKEN }}
         shell: bash -l {0}
         run: |
+          set -euo pipefail
           [ -z "$ANACONDA_VERSION" ] && exit 1
           find pkgs -type f -name "*.conda" -print0 | while IFS= read -r -d '' CONDA; do
             anaconda -t "$ANACONDA_API_TOKEN" upload --force "$CONDA" --label "$ANACONDA_LABEL"
