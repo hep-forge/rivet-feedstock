@@ -30,7 +30,9 @@ jobs:
           echo "COMMIT_SHA=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
 
           COMMIT_LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          [ -n "$COMMIT_LATEST_TAG" ] && echo "COMMIT_LATEST_TAG=$COMMIT_LATEST_TAG" >> "$GITHUB_OUTPUT"
+          if [ -n "$COMMIT_LATEST_TAG" ]; then
+            echo "COMMIT_LATEST_TAG=$COMMIT_LATEST_TAG" >> "$GITHUB_OUTPUT"
+          fi
 
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             COMMIT_TAG="$GITHUB_REF_NAME"
@@ -40,18 +42,23 @@ jobs:
           fi
 
           COMMIT_VERSION="${COMMIT_TAG:-${COMMIT_LATEST_TAG}}"
-          [ -n "$COMMIT_VERSION" ] && echo "COMMIT_VERSION=$COMMIT_VERSION" >> "$GITHUB_OUTPUT"
+          if [ -n "$COMMIT_VERSION" ]; then
+            echo "COMMIT_VERSION=$COMMIT_VERSION" >> "$GITHUB_OUTPUT"
+          fi
 
       - id: anaconda
         run: |
           set -e
-          [ -n "${{ steps.git.outputs.COMMIT_TYPE }}" ] && CT="-${{ steps.git.outputs.COMMIT_TYPE }}" || CT=""
+          CT="${{ steps.git.outputs.COMMIT_TYPE }}"
+          [ -n "$CT" ] && CT="-$CT" || CT=""
           CV="${{ steps.git.outputs.COMMIT_VERSION }}"
+
           if [[ "$CV" == *-* ]]; then
             ANACONDA_LABEL="${CV#*-}"
           else
             ANACONDA_LABEL="main"
           fi
+
           ANACONDA_PACKAGE=$(basename "$(git rev-parse --show-toplevel)" | sed 's,-feedstock,,g')
           ANACONDA_VERSION="${CV//-/.}"
           ANACONDA_VERSION="${ANACONDA_VERSION:-0.0.0}${CT//-/.}"
@@ -63,51 +70,67 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   prepare:
-      runs-on: ubuntu-latest
-      needs: env
-      outputs:
-        matrix: ${{ steps.mk.outputs.matrix }}
-      steps:
-        - uses: actions/checkout@v4
-  
-        - name: Setup Miniconda (prepare)
-          uses: conda-incubator/setup-miniconda@v2
-          with:
-            auto-update-conda: true
-            activate-environment: true
-            python-version: "3.11"
-            auto-activate-base: true
-  
-        - name: Install conda-build + jq
-          shell: bash -l {0}
-          run: |
-            conda install -y -c conda-forge conda-build jq
-  
-        - id: mk
-          name: Render recipe -> GHA matrix (JSON only)
-          shell: bash -l {0}
-          run: |
-            set -euo pipefail
-            # Render variants to JSON (stdout only), silence chatter on stderr
-            conda render recipe --json > render.json 2>/dev/null
-  
-            # Build a compact {include:[...]} matrix with the keys you care about
-            jq -c '
-              [ .[] 
-                | { 
-                    root: (.config.variant.root|tostring),
-                    c_stdlib: .config.variant.c_stdlib,
-                    c_stdlib_version: (.config.variant.c_stdlib_version|tostring)
-                  }
-              ]
-              | unique
-              | { include: . }
-            ' render.json > matrix.json
-  
-            # Export a single-line JSON into GITHUB_OUTPUT
-            MATRIX=$(tr -d "\n" < matrix.json)
-            echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
-            
+    runs-on: ubuntu-latest
+    needs: env
+    outputs:
+      matrix: ${{ steps.mk.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Miniconda (prepare)
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          activate-environment: true     # activates default base safely
+          python-version: "3.11"
+          auto-activate-base: true
+
+      - name: Install conda-build + jq
+        shell: bash -l {0}
+        run: |
+          conda install -y -c conda-forge conda-build jq
+
+      - id: mk
+        name: Render recipe -> GHA matrix (JSON only)
+        shell: bash -l {0}
+        run: |
+          set -Eeuo pipefail
+
+          RECIPE_DIR=${RECIPE_DIR:-recipe}
+          if [ ! -d "$RECIPE_DIR" ]; then
+            echo "::error::No '$RECIPE_DIR/' directory at repo root."
+            ls -la
+            exit 1
+          fi
+
+          # Render variants to JSON; silence chatter
+          if ! conda render "$RECIPE_DIR" --json > render.json 2> render.stderr; then
+            echo "::group::conda render stderr"
+            cat render.stderr || true
+            echo "::endgroup::"
+            exit 1
+          fi
+
+          # Build a compact {include:[...]} matrix using your CBC keys
+          if ! jq -e -c '
+            [ .[]
+              | {
+                  root: (.config.variant.root|tostring),
+                  c_stdlib: .config.variant.c_stdlib,
+                  c_stdlib_version: (.config.variant.c_stdlib_version|tostring)
+                }
+            ] | unique | { include: . }
+          ' render.json > matrix.json; then
+            echo "::group::render.json (first 2000 chars)"
+            head -c 2000 render.json || true
+            echo
+            echo "::endgroup::"
+            exit 1
+          fi
+
+          MATRIX=$(tr -d '\n' < matrix.json)
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
   build:
     runs-on: ubuntu-latest
     needs: [env, prepare]
@@ -138,6 +161,7 @@ jobs:
               - conda-package-handling
               - ccache
               - pkg-config
+              - jq
 
       - name: Cache conda-bld
         uses: actions/cache@v4
@@ -147,29 +171,28 @@ jobs:
 
       - name: Configure ccache
         run: |
+          set -e
           mkdir -p ~/.ccache
           {
             echo "max_size = 2G"
             echo "compiler_check = content"
           } > ~/.ccache/ccache.conf
-          echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
-          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-          echo "CC='ccache gcc'"  >> $GITHUB_ENV
-          echo "CXX='ccache g++'" >> $GITHUB_ENV
-          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
-          echo "CMAKE_C_COMPILER_LAUNCHER=ccache"   >> $GITHUB_ENV
+          echo "CCACHE_DIR=$HOME/.ccache" >> "$GITHUB_ENV"
+          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          echo "CC=ccache gcc"  >> "$GITHUB_ENV"
+          echo "CXX=ccache g++" >> "$GITHUB_ENV"
+          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+          echo "CMAKE_C_COMPILER_LAUNCHER=ccache"   >> "$GITHUB_ENV"
 
       - name: Build (one CBC variant)
         shell: bash -l {0}
         run: |
           set -euo pipefail
-          VAR_JSON=$(jq -nc \
-            --arg root "${{ matrix.root }}" \
-            --arg c_stdlib "${{ matrix.c_stdlib }}" \
-            --arg c_stdlib_version "${{ matrix.c_stdlib_version }}" \
-            '{root: [$root], c_stdlib: [$c_stdlib], c_stdlib_version: [$c_stdlib_version]}')
-          echo "Selected variant: $VAR_JSON"
-          mamba mambabuild recipe --variants "$VAR_JSON" --output-folder pkgs
+          cat > variants.json <<JSON
+{"root":["${{ matrix.root }}"],"c_stdlib":["${{ matrix.c_stdlib }}"],"c_stdlib_version":["${{ matrix.c_stdlib_version }}"]}
+JSON
+          echo "Selected variant: $(cat variants.json)"
+          mamba mambabuild recipe --variants "$(cat variants.json)" --output-folder pkgs
 
           # Optional: convert tarballs to .conda for upload
           for PKG in $(find pkgs -name "*.tar.bz2"); do
@@ -189,7 +212,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           pattern: conda-packages-*
-        # merge-multiple: true isn't supported by v4, artifacts will download under their own dirs
+          merge-multiple: true
           path: pkgs
 
       - name: Setup micromamba (client)
@@ -200,7 +223,8 @@ jobs:
           environment-file: |
             name: upload
             channels: [conda-forge]
-            dependencies: [anaconda-client]
+            dependencies:
+              - anaconda-client
 
       - name: Upload to Anaconda
         env:
