@@ -75,26 +75,33 @@ jobs:
       
       - id: mk
         name: Render recipe → GHA matrix
-        shell: bash -l {0}              # << again, run inside conda env
+        shell: bash -l {0}
         run: |
-          python - <<'PY'
-import json
-from conda_build.api import render
-outs = render("recipe", finalize=False)
-matrix = []
-seen = set()
-for (meta, _, _) in outs:
-    v = meta.config.variant
-    item = {
-      "root": str(v.get("root","")),
-      "c_stdlib": v.get("c_stdlib",""),
-      "c_stdlib_version": str(v.get("c_stdlib_version","")),
-    }
-    key = json.dumps(item, sort_keys=True)
-    if item["root"] and key not in seen:
-        seen.add(key); matrix.append(item)
-print("::set-output name=matrix::" + json.dumps({"include": matrix}))
-PY
+          # Write JSON to a file from Python
+          python - <<'PY' > matrix.json
+          import json
+          from conda_build.api import render
+      
+          outs = render("recipe", finalize=False)
+          matrix = []
+          seen = set()
+          for (meta, _, _) in outs:
+              v = meta.config.variant
+              item = {
+                  "root": str(v.get("root", "")),
+                  "c_stdlib": v.get("c_stdlib", ""),
+                  "c_stdlib_version": str(v.get("c_stdlib_version", "")),
+              }
+              key = json.dumps(item, sort_keys=True)
+              if item["root"] and key not in seen:
+                  seen.add(key)
+                  matrix.append(item)
+      
+          print(json.dumps({"include": matrix}))
+          PY
+      
+          # Export to the job output (new-style)
+          echo "matrix=$(cat matrix.json)" >> "$GITHUB_OUTPUT"
 
   build:
     needs: [env, prepare]
