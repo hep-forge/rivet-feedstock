@@ -61,42 +61,40 @@ jobs:
       matrix: ${{ steps.mk.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
-      - name: Setup miniconda (conda-build only)
+      - name: Setup miniconda (prepare)
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
-          activate-environment: true
+          activate-environment: base    # since "true" works for you, base is effectively what you get
           python-version: "3.11"
           auto-activate-base: true
+      
       - name: Install conda-build
+        shell: bash -l {0}              # << ensure conda env is loaded
         run: conda install -y -c conda-forge conda-build
+      
       - id: mk
         name: Render recipe → GHA matrix
-        shell: bash -l {0}
+        shell: bash -l {0}              # << again, run inside conda env
         run: |
           python - <<'PY'
-          import json, sys
-          from conda_build.api import render
-          # Render WITHOUT finalizing to preserve variant info straight from conda_build_config.yaml
-          outs = render("recipe", finalize=False)
-          matrix = []
-          seen = set()
-          for (meta, _, _) in outs:
-            v = meta.config.variant
-            # pick the knobs you want to drive the matrix (extend as needed)
-            item = {
-              "root": str(v.get("root","")),
-              "c_stdlib": v.get("c_stdlib",""),
-              "c_stdlib_version": str(v.get("c_stdlib_version","")),
-              # add more keys if you use them in your CBC
-            }
-            key = json.dumps(item, sort_keys=True)
-            if item["root"] and key not in seen:
-              seen.add(key)
-              matrix.append(item)
-          # Emit as a JSON array for fromJSON()
-          print("::set-output name=matrix::" + json.dumps({"include": matrix}))
-          PY
+      import json
+      from conda_build.api import render
+      outs = render("recipe", finalize=False)
+      matrix = []
+      seen = set()
+      for (meta, _, _) in outs:
+          v = meta.config.variant
+          item = {
+            "root": str(v.get("root","")),
+            "c_stdlib": v.get("c_stdlib",""),
+            "c_stdlib_version": str(v.get("c_stdlib_version","")),
+          }
+          key = json.dumps(item, sort_keys=True)
+          if item["root"] and key not in seen:
+              seen.add(key); matrix.append(item)
+      print("::set-output name=matrix::" + json.dumps({"include": matrix}))
+      PY
 
   build:
     needs: [env, prepare]
