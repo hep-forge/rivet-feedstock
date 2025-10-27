@@ -78,23 +78,23 @@ jobs:
         shell: bash -l {0}              # << again, run inside conda env
         run: |
           python - <<'PY'
-      import json
-      from conda_build.api import render
-      outs = render("recipe", finalize=False)
-      matrix = []
-      seen = set()
-      for (meta, _, _) in outs:
-          v = meta.config.variant
-          item = {
-            "root": str(v.get("root","")),
-            "c_stdlib": v.get("c_stdlib",""),
-            "c_stdlib_version": str(v.get("c_stdlib_version","")),
-          }
-          key = json.dumps(item, sort_keys=True)
-          if item["root"] and key not in seen:
-              seen.add(key); matrix.append(item)
-      print("::set-output name=matrix::" + json.dumps({"include": matrix}))
-      PY
+import json
+from conda_build.api import render
+outs = render("recipe", finalize=False)
+matrix = []
+seen = set()
+for (meta, _, _) in outs:
+    v = meta.config.variant
+    item = {
+      "root": str(v.get("root","")),
+      "c_stdlib": v.get("c_stdlib",""),
+      "c_stdlib_version": str(v.get("c_stdlib_version","")),
+    }
+    key = json.dumps(item, sort_keys=True)
+    if item["root"] and key not in seen:
+        seen.add(key); matrix.append(item)
+print("::set-output name=matrix::" + json.dumps({"include": matrix}))
+PY
 
   build:
     needs: [env, prepare]
