@@ -74,7 +74,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
-          activate-environment: base    # must be a string; do NOT use true/false
+          activate-environment: true    # must be a string; do NOT use true/false
           python-version: "3.11"
           auto-activate-base: true
 
