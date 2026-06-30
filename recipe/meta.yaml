@@ -13,6 +13,8 @@
 build:
   number: 0
   string: "root{{ root.replace('.', '') }}"
+  run_exports:
+    - {{ pin_subpackage(name, max_pin="x.x.x") }}
 
 package:
   name: {{ environ.get('ANACONDA_PACKAGE', "rivet")|string|lower }}
@@ -36,7 +38,7 @@ requirements:
   host:
     - root {{ root }}.*
     - fastjet
-    - fastjet-contrib
+    - fastjet-contrib ==1.056
     - zlib
     - hepmc * root{{ root.replace('.', '') }}
     {% if major_version < 4 %}
@@ -48,7 +50,7 @@ requirements:
   run:
     - python
     - fastjet
-    - fastjet-contrib
+    - fastjet-contrib ==1.056
     - zlib
     - root {{ root }}.*
     - hepmc * root{{ root.replace('.', '') }}
