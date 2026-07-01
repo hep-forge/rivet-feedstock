@@ -9,10 +9,11 @@
 {% set version = version|string %}
 
 {% set major_version = version.split('.')[0]|int %}
+{% set root_tag = (root or '')|replace('.', '') %}
 
 build:
   number: 0
-  string: "root{{ root.replace('.', '') }}"
+  string: "root{{ root_tag }}"
   run_exports:
     - {{ pin_subpackage(name, max_pin="x.x.x") }}
 
@@ -40,11 +41,11 @@ requirements:
     - fastjet
     - fastjet-contrib ==1.056
     - zlib
-    - hepmc * root{{ root.replace('.', '') }}
+    - hepmc * root{{ root_tag }}
     {% if major_version < 4 %}
-    - yoda<2 root{{ root.replace('.', '') }}
+    - yoda<2 root{{ root_tag }}
     {% else %}
-    - yoda * root{{ root.replace('.', '') }}
+    - yoda * root{{ root_tag }}
     {% endif %}
     
   run:
@@ -53,12 +54,12 @@ requirements:
     - fastjet-contrib ==1.056
     - zlib
     - root {{ root }}.*
-    - hepmc * root{{ root.replace('.', '') }}
+    - hepmc * root{{ root_tag }}
 
     {% if major_version < 4 %}
-    - yoda<2 root{{ root.replace('.', '') }}
+    - yoda<2 root{{ root_tag }}
     {% else %}
-    - yoda * root{{ root.replace('.', '') }}
+    - yoda * root{{ root_tag }}
     {% endif %}
 
 about:
