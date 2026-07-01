@@ -11,8 +11,5 @@ root:
   - 6.34
   - 6.36
 
-zip_keys:
-  - root
-
 packages:
   - numpy
