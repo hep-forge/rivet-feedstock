@@ -33,6 +33,7 @@ requirements:
   build:
     - root {{ root }}.*
     - make
+    - gnuconfig
 
   host:
     - root {{ root }}.*
