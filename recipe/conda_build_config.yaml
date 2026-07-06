@@ -17,9 +17,12 @@ c_stdlib_version:
 
 # 6.36 dropped: 6.36.04 was only ever published for linux-64 (no
 # linux-aarch64 build), so this variant slot was unconditionally
-# unsatisfiable on arm64.
+# unsatisfiable on arm64. 6.38 added for rivet>=4 on aarch64, where
+# yoda>=2 only exists as a root638 build (see the build:skip condition
+# in meta.yaml for how each version line maps to the right root slot).
 root:
   - 6.34
+  - 6.38
 
 packages:
   - numpy

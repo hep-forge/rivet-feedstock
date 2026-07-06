@@ -16,6 +16,11 @@ build:
   string: "root{{ root_tag }}"
   run_exports:
     - {{ pin_subpackage(name, max_pin="x.x.x") }}
+  # yoda>=2 (needed by rivet>=4) was only ever built against root634 on
+  # linux-64, not aarch64 (aarch64's yoda>=2 build is root638 instead);
+  # and yoda<2 (needed by rivet<4) was never built against root638 at
+  # all, on either arch. Skip the two combinations that can never solve.
+  skip: {{ (aarch64 and root == "6.34" and major_version >= 4) or (root == "6.38" and major_version < 4) }}
 
 package:
   name: {{ name }}
