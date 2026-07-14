@@ -38,6 +38,9 @@ source:
 
 requirements:
   build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
     - root {{ root }}.*
     - make
     - gnuconfig
@@ -45,7 +48,7 @@ requirements:
   host:
     - root {{ root }}.*
     - fastjet
-    - fastjet-contrib ==1.056
+    - fastjet-contrib ==1.103
     - zlib
     - hepmc * root{{ root_tag }}
     {% if major_version < 4 %}
@@ -53,11 +56,11 @@ requirements:
     {% else %}
     - yoda * root{{ root_tag }}
     {% endif %}
-    
+
   run:
     - python
     - fastjet
-    - fastjet-contrib ==1.056
+    - fastjet-contrib ==1.103
     - zlib
     - root {{ root }}.*
     - hepmc * root{{ root_tag }}
