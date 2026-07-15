@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-PYTHON_VERSION=$($PREFIX/bin/python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+# $PREFIX only exists during conda-build itself; a real end-user
+# `conda activate` sets $CONDA_PREFIX instead, which is what an
+# activate.d script actually runs under. Using $PREFIX here silently
+# evaluated to empty, producing "/bin/python: No such file or directory".
+PYTHON_VERSION=$($CONDA_PREFIX/bin/python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
 
 export OLD_PYTHONPATH="$PYTHONPATH"
-export PYTHONPATH="$PREFIX/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH"
+export PYTHONPATH="$CONDA_PREFIX/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH"
