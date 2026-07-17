@@ -14,6 +14,12 @@
 build:
   number: 0
   string: "root{{ root_tag }}"
+  # No ROOT dictionary generation currently, but this links against ROOT
+  # and could grow one -- pre-emptive protection against conda-build's
+  # prefix-relocation corrupting a future lib/*.pcm, matching
+  # root-feedstock/root-plus-feedstock's fix for the identical artifact.
+  ignore_prefix_files:
+    - lib/*.pcm
   run_exports:
     - {{ pin_subpackage(name, max_pin="x.x.x") }}
   # yoda>=2 (needed by rivet>=4) was only ever built against root634 on
