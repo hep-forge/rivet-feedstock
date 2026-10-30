@@ -15,8 +15,8 @@ Rivet - the particle-physics MC analysis toolkit
 
 | Architecture | Latest published |
 |--------------|------------------|
-| linux-amd64 (`linux-64`) | ✅ `4.1.0` |
-| linux-arm64 (`linux-aarch64`) | ✅ `4.1.0` |
+| linux-amd64 (`linux-64`) | ✅ `4.1.3` |
+| linux-arm64 (`linux-aarch64`) | ✅ `4.1.3` |
 
 _As of the last feedstock render; the badges above are live._
 
