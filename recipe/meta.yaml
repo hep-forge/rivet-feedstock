@@ -1,7 +1,8 @@
 {% set name = environ.get('ANACONDA_PACKAGE', "rivet")|string|lower %}
 
 {% set versions = {
-    "4.1.3": "2ad5ff8b1060821e4ccfb32ee28576c2d6c59fb3b69e59b7e303a6ccfefbd284"
+    "4.1.3": "2ad5ff8b1060821e4ccfb32ee28576c2d6c59fb3b69e59b7e303a6ccfefbd284",
+    "3.1.11": "89f359564c124dbccbab7a4ac7c8fa5edcee70e401e2a3c2eff482f9dbaa4a9f"
 } %}
 
 {% set version = environ.get('COMMIT_VERSION', None) %}
@@ -90,3 +91,10 @@ about:
 extra:
   recipe-maintainers:
     - meiyasan
+  # Long-Term-Supported in *this channel* -- protected from the anaconda
+  # trim's "keep newest 2" rule (see channel-maintenance.yml). 3.1.11 is
+  # the rivet<4 line rapgap pins against; the 4.1.3 publish on 2026-10-30
+  # trimmed it because it was not listed here.
+  lts:
+    main:
+      - "3.1.11"
