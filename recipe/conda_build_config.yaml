@@ -15,13 +15,10 @@ c_stdlib_version:
   - 2.17  # [linux]
   - 11.0  # [osx]
 
-# 6.36 dropped: 6.36.04 was only ever published for linux-64 (no
-# linux-aarch64 build), so this variant slot was unconditionally
-# unsatisfiable on arm64. 6.38 added for rivet>=4 on aarch64, where
-# yoda>=2 only exists as a root638 build (see the build:skip condition
-# in meta.yaml for how each version line maps to the right root slot).
+# Only ROOT 6.38: 6.36 was never published for linux-aarch64, and the
+# 6.34 slot was dropped 2026-11-03 (no hepmc/fastnlo root634 GCC 14 build,
+# nothing consumes it). rivet<4 and rivet>=4 both build against 6.38.
 root:
-  - 6.34
   - 6.38
 
 packages:
