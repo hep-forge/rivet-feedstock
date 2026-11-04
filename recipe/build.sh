@@ -19,6 +19,13 @@ done
 # and a plain `./configure` would fall back to whatever g++/cc resolves
 # to on the runner -- same GLIBC-symbol-leak failure mode documented for
 # fastjet-contrib's own custom configure script.
+# macOS: newer clang makes "template" without an argument list after it an
+# error by default (-Wmissing-template-arg-list-after-template-kw); Rivet's
+# Analysis.cc has one. Keep it a warning.
+if [[ "$(uname)" == "Darwin" ]]; then
+  CXXFLAGS="${CXXFLAGS} -Wno-error=missing-template-arg-list-after-template-kw"
+fi
+
 ./configure --prefix=$PREFIX --with-zlib=$PREFIX --with-hepmc3=$PREFIX \
   CXX="${CXX}" CXXFLAGS="${CXXFLAGS}" CC="${CC}" CFLAGS="${CFLAGS}"
 
