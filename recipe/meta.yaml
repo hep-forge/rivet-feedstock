@@ -43,12 +43,14 @@ requirements:
     - {{ compiler('cxx') }}
     - {{ compiler('c') }}
     - {{ stdlib('c') }}
-    - root {{ root }}.*
+    - root_base {{ root }}.* cxx{{ root_cxx_standard }}*
+    - python
     - make
     - gnuconfig
 
   host:
-    - root {{ root }}.*
+    - root_base {{ root }}.* cxx{{ root_cxx_standard }}*
+    - python
     - fastjet
     - fastjet-contrib ==1.103
     - zlib
@@ -64,7 +66,7 @@ requirements:
     - fastjet
     - fastjet-contrib ==1.103
     - zlib
-    - root {{ root }}.*
+    - {{ pin_compatible('root_base', exact=True) }}
     - hepmc * root{{ root_tag }}
 
     {% if major_version < 4 %}
