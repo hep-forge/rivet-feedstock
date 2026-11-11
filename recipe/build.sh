@@ -25,6 +25,13 @@ done
 if [[ "$(uname)" == "Darwin" ]]; then
   CXXFLAGS="${CXXFLAGS} -Wno-error=missing-template-arg-list-after-template-kw"
 fi
+# Linux: configure adds -Werror=uninitialized, and GCC 16 (conda-forge's
+# root_base needs it) raises a false -Wmaybe-uninitialized inside
+# std::vector's copy constructor in AnalysisHandler.cc on aarch64. Keep that
+# one a warning; CXXFLAGS come after configure's own flags on each compile.
+if [[ "$(uname)" == "Linux" ]]; then
+  CXXFLAGS="${CXXFLAGS} -Wno-error=maybe-uninitialized"
+fi
 
 ./configure --prefix=$PREFIX --with-zlib=$PREFIX --with-hepmc3=$PREFIX \
   CXX="${CXX}" CXXFLAGS="${CXXFLAGS}" CC="${CC}" CFLAGS="${CFLAGS}"
